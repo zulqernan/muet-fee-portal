@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import AppShell from "../../components/AppShell";
 
 type Me = {
   email: string;
@@ -24,6 +25,12 @@ type Challan = {
   lateFee: number;
   totalPayable: number;
 };
+
+const NAV = [
+  { label: "Dashboard", href: "/dashboard" },
+  { label: "Challan PDF", href: "/api/challan/pdf", external: true },
+  { label: "Assistant", href: "#assistant" },
+];
 
 export default function DashboardPage() {
   const [me, setMe] = useState<Me | null>(null);
@@ -54,11 +61,6 @@ export default function DashboardPage() {
     load().catch(() => setError("Could not reach the server."));
   }, []);
 
-  async function logout() {
-    await fetch("/api/logout", { method: "POST" });
-    window.location.href = "/login";
-  }
-
   async function ask(e: React.FormEvent) {
     e.preventDefault();
     setAsking(true);
@@ -87,10 +89,10 @@ export default function DashboardPage() {
 
   if (error) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-        <div className="bg-white rounded-xl shadow p-6 text-center space-y-3">
-          <p className="text-red-600">{error}</p>
-          <a href="/login" className="text-blue-600 underline text-sm">
+      <main className="min-h-screen flex items-center justify-center p-4">
+        <div className="bg-white rounded-xl shadow-md p-6 text-center space-y-3">
+          <p className="text-red-700">{error}</p>
+          <a href="/login" className="text-brand underline text-sm">
             Go to login
           </a>
         </div>
@@ -100,120 +102,169 @@ export default function DashboardPage() {
 
   if (!me) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-gray-50">
+      <main className="min-h-screen flex items-center justify-center">
         <p className="text-gray-500">Loading...</p>
       </main>
     );
   }
 
-  return (
-    <main className="min-h-screen bg-gray-50 p-4 md:p-8">
-      <div className="max-w-xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold text-gray-900">My Dashboard</h1>
-          <button onClick={logout} className="text-sm text-blue-600 underline">
-            Logout
-          </button>
-        </div>
+  const student = me.student;
+  const initials = student
+    ? student.name
+        .split(" ")
+        .map((p) => p[0])
+        .slice(0, 2)
+        .join("")
+        .toUpperCase()
+    : "";
 
-        {me.student ? (
-          <section className="bg-white rounded-xl shadow p-5 space-y-1 text-gray-800">
-            <p className="font-medium text-gray-900">{me.student.name}</p>
-            <p className="text-sm">Roll no: {me.student.rollNo}</p>
-            <p className="text-sm">Department: {me.student.department}</p>
-            <p className="text-sm">
-              Batch {me.student.batch} · Semester {me.student.semester}
-            </p>
-          </section>
-        ) : (
-          <section className="bg-white rounded-xl shadow p-5 text-gray-800">
+  return (
+    <AppShell nav={NAV} userLabel={student ? student.rollNo : me.email}>
+      <div className="max-w-3xl mx-auto space-y-6">
+        {!student && (
+          <section className="bg-white rounded-xl shadow-md p-6 text-gray-800">
             <p className="text-sm">
               Logged in as {me.email} ({me.role}). This page is for students.
             </p>
           </section>
         )}
 
-        {me.student && (
-          <section className="bg-white rounded-xl shadow p-5 space-y-3 text-gray-800">
-            <h2 className="font-medium text-gray-900">Fee challan</h2>
+        {student && (
+          <>
+            <section className="bg-white rounded-xl shadow-md border border-gray-100 p-6 flex items-center gap-4">
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-navy-900 text-accent text-lg font-semibold">
+                {initials}
+              </span>
+              <div className="min-w-0">
+                <h1 className="text-xl font-semibold text-navy-900 truncate">
+                  {student.name}
+                </h1>
+                <p className="text-sm text-gray-600">
+                  {student.rollNo} · {student.department}
+                </p>
+                <p className="text-sm text-gray-500">
+                  Batch {student.batch} · Semester {student.semester}
+                </p>
+              </div>
+            </section>
 
-            {challanError && <p className="text-sm text-red-600">{challanError}</p>}
-
-            {challan && (
-              <>
-                <div className="text-sm space-y-1">
-                  <p>Challan no: {challan.challanNo}</p>
-                  <p>
-                    Semester {challan.semester} · Session {challan.session}
-                  </p>
-                  <p>Due date: {challan.dueDate.slice(0, 10)}</p>
-                  <p>Fee: Rs. {challan.amount}</p>
-                  <p>Late fee: Rs. {challan.lateFee}</p>
-                  <p className="font-medium">Total payable: Rs. {challan.totalPayable}</p>
-                  <p>
-                    Status:{" "}
-                    <span
-                      className={
-                        challan.status === "PAID" ? "text-green-700" : "text-red-600"
-                      }
-                    >
-                      {challan.status}
-                    </span>
-                  </p>
-                </div>
-                <a
-                  href="/api/challan/pdf"
-                  target="_blank"
-                  className="inline-block bg-blue-600 text-white rounded-md px-4 py-2 text-sm font-medium"
-                >
-                  Download challan PDF
-                </a>
-              </>
-            )}
-          </section>
-        )}
-
-        {me.student && (
-          <section className="bg-white rounded-xl shadow p-5 space-y-3 text-gray-800">
-            <h2 className="font-medium text-gray-900">Ask about MUET fees</h2>
-            <p className="text-xs text-gray-500">
-              Answers come from the MUET fee structure document. For your due
-              date and late fee, use the challan above.
-            </p>
-
-            <form onSubmit={ask} className="flex gap-2">
-              <input
-                className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-gray-900"
-                placeholder="e.g. What is the tuition fee per semester?"
-                value={question}
-                onChange={(e) => setQuestion(e.target.value)}
-                minLength={3}
-                maxLength={500}
-                required
-              />
-              <button
-                disabled={asking}
-                className="bg-blue-600 text-white rounded-md px-4 py-2 text-sm font-medium disabled:opacity-60"
-              >
-                {asking ? "Thinking..." : "Ask"}
-              </button>
-            </form>
-
-            {chatError && <p className="text-sm text-red-600">{chatError}</p>}
-
-            {answer && (
-              <div className="space-y-2">
-                <p className="text-sm whitespace-pre-wrap">{answer}</p>
-                {sources.length > 0 && (
-                  <p className="text-xs text-gray-500">
-                    Based on: {sources.join(" · ")}
-                  </p>
+            <section className="bg-white rounded-xl shadow-md border border-gray-100 p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="font-semibold text-navy-900">Fee challan</h2>
+                {challan && (
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                      challan.status === "PAID"
+                        ? "bg-green-100 text-green-800"
+                        : "bg-red-100 text-red-800"
+                    }`}
+                  >
+                    {challan.status}
+                  </span>
                 )}
               </div>
-            )}
-          </section>
+
+              {challanError && (
+                <p className="text-sm text-red-700 bg-red-50 rounded-lg px-3 py-2">
+                  {challanError}
+                </p>
+              )}
+
+              {challan && (
+                <>
+                  <p className="text-sm text-gray-600">
+                    Challan {challan.challanNo} · Semester {challan.semester} ·
+                    Session {challan.session}
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="rounded-lg bg-surface p-4">
+                      <p className="text-xs text-gray-500">Fee</p>
+                      <p className="text-lg font-semibold text-navy-900">
+                        Rs. {challan.amount.toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="rounded-lg bg-surface p-4">
+                      <p className="text-xs text-gray-500">Late fee</p>
+                      <p className="text-lg font-semibold text-navy-900">
+                        Rs. {challan.lateFee.toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="rounded-lg bg-navy-900 p-4">
+                      <p className="text-xs text-blue-200">Total payable</p>
+                      <p className="text-lg font-semibold text-accent">
+                        Rs. {challan.totalPayable.toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+
+                  <p className="text-sm text-gray-600">
+                    Due date: {challan.dueDate.slice(0, 10)}
+                  </p>
+
+                  <a
+                    href="/api/challan/pdf"
+                    target="_blank"
+                    className="inline-block bg-brand hover:bg-brand-dark text-white rounded-lg px-5 py-2.5 text-sm font-semibold transition-colors"
+                  >
+                    Download challan PDF
+                  </a>
+                </>
+              )}
+            </section>
+
+            <section
+              id="assistant"
+              className="bg-white rounded-xl shadow-md border border-gray-100 p-6 space-y-3"
+            >
+              <h2 className="font-semibold text-navy-900">
+                Ask about MUET fees
+              </h2>
+              <p className="text-xs text-gray-500">
+                Answers come from the MUET fee structure document. For your due
+                date and late fee, use the challan above.
+              </p>
+
+              <form onSubmit={ask} className="flex flex-col sm:flex-row gap-2">
+                <input
+                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2.5 text-gray-900 outline-none focus:border-brand focus:ring-2 focus:ring-brand/30"
+                  placeholder="e.g. What is the tuition fee per semester?"
+                  value={question}
+                  onChange={(e) => setQuestion(e.target.value)}
+                  minLength={3}
+                  maxLength={500}
+                  required
+                />
+                <button
+                  disabled={asking}
+                  className="bg-brand hover:bg-brand-dark text-white rounded-lg px-5 py-2.5 text-sm font-semibold transition-colors disabled:opacity-60"
+                >
+                  {asking ? "Thinking..." : "Ask"}
+                </button>
+              </form>
+
+              {chatError && (
+                <p className="text-sm text-red-700 bg-red-50 rounded-lg px-3 py-2">
+                  {chatError}
+                </p>
+              )}
+
+              {answer && (
+                <div className="rounded-lg bg-surface p-4 space-y-2">
+                  <p className="text-sm text-gray-800 whitespace-pre-wrap">
+                    {answer}
+                  </p>
+                  {sources.length > 0 && (
+                    <p className="text-xs text-gray-500">
+                      Based on: {sources.join(" · ")}
+                    </p>
+                  )}
+                </div>
+              )}
+            </section>
+          </>
         )}
       </div>
-    </main>
+    </AppShell>
   );
 }

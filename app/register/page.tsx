@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import AuthShell from "../../components/AuthShell";
 
 export default function RegisterPage() {
   const [rollNo, setRollNo] = useState("");
@@ -32,18 +33,30 @@ export default function RegisterPage() {
     }
   }
 
+  const inputClass =
+    "w-full border border-gray-300 rounded-lg px-3 py-2.5 text-gray-900 outline-none focus:border-brand focus:ring-2 focus:ring-brand/30";
+
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+    <AuthShell>
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-sm bg-white rounded-xl shadow p-6 space-y-4"
+        className="w-full max-w-sm bg-white rounded-xl shadow-md border border-gray-100 p-8 space-y-5"
       >
-        <h1 className="text-xl font-semibold text-gray-900">Student Registration</h1>
+        <div className="text-center space-y-1">
+          <h1 className="text-2xl font-semibold text-navy-900">
+            Student Registration
+          </h1>
+          <p className="text-sm text-gray-500">
+            Use the roll number and email registered with the university
+          </p>
+        </div>
 
         <div>
-          <label className="block text-sm text-gray-700 mb-1">Roll number</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Roll number
+          </label>
           <input
-            className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
+            className={inputClass}
             value={rollNo}
             onChange={(e) => setRollNo(e.target.value)}
             placeholder="e.g. 24SW003"
@@ -52,10 +65,12 @@ export default function RegisterPage() {
         </div>
 
         <div>
-          <label className="block text-sm text-gray-700 mb-1">Official email</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Official email
+          </label>
           <input
             type="email"
-            className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
+            className={inputClass}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -63,10 +78,12 @@ export default function RegisterPage() {
         </div>
 
         <div>
-          <label className="block text-sm text-gray-700 mb-1">Password</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Password
+          </label>
           <input
             type="password"
-            className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
+            className={inputClass}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             minLength={8}
@@ -78,17 +95,30 @@ export default function RegisterPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-blue-600 text-white rounded-md py-2 font-medium disabled:opacity-60"
+          className="w-full bg-brand hover:bg-brand-dark text-white rounded-lg py-2.5 font-semibold transition-colors disabled:opacity-60"
         >
           {loading ? "Registering..." : "Register"}
         </button>
 
         {message && (
-          <p className={isError ? "text-sm text-red-600" : "text-sm text-green-700"}>
+          <p
+            className={
+              isError
+                ? "text-sm text-red-700 bg-red-50 rounded-lg px-3 py-2"
+                : "text-sm text-green-700 bg-green-50 rounded-lg px-3 py-2"
+            }
+          >
             {message}
           </p>
         )}
+
+        <p className="text-center text-sm text-gray-600">
+          Already registered?{" "}
+          <a href="/login" className="text-brand font-medium hover:underline">
+            Login
+          </a>
+        </p>
       </form>
-    </main>
+    </AuthShell>
   );
 }
