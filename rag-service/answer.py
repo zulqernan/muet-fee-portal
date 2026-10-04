@@ -24,6 +24,8 @@ Rules:
 - Reply in the same language the student wrote in (English or Roman Urdu).
 - Keep the answer short."""
 
+_cache = {}
+
 
 def generate(contents):
     last_error = None
@@ -35,6 +37,12 @@ def generate(contents):
                     contents=contents,
                     config=types.GenerateContentConfig(system_instruction=SYSTEM),
                 )
+            except errors.ClientError as e:
+                # 429 = is model ki quota khatam, agle model par jao
+                if e.code == 429:
+                    last_error = e
+                    break
+                raise
             except errors.ServerError as e:
                 last_error = e
                 time.sleep(2 * (attempt + 1))
@@ -42,10 +50,18 @@ def generate(contents):
 
 
 def answer(question):
+    key = " ".join(question.lower().split())
+    if key in _cache:
+        return _cache[key]
+
     hits = search(question, top_k=3)
     context = "\n\n---\n\n".join(text for _, text in hits)
     response = generate(f"CONTEXT:\n{context}\n\nQUESTION: {question}")
     sources = [text.splitlines()[0] for _, text in hits]
+
+    if len(_cache) >= 200:
+        _cache.clear()
+    _cache[key] = (response.text, sources)
     return response.text, sources
 
 

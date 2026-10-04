@@ -2,8 +2,16 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { z } from "zod";
 import { readSession, SESSION_COOKIE } from "../../../lib/session";
+import { rateLimit } from "../../../lib/rateLimit";
 
 const schema = z.object({ question: z.string().trim().min(3).max(500) });
+
+function tooMany(retryAfter: number, message: string) {
+  return NextResponse.json(
+    { error: message },
+    { status: 429, headers: { "Retry-After": String(retryAfter) } }
+  );
+}
 
 export async function POST(req: Request) {
   const store = await cookies();
@@ -18,6 +26,22 @@ export async function POST(req: Request) {
     return NextResponse.json(
       { error: "Ask a question between 3 and 500 characters." },
       { status: 400 }
+    );
+  }
+
+  const perUser = await rateLimit(`chat:user:${session.userId}`, 15, 10 * 60);
+  if (!perUser.ok) {
+    return tooMany(
+      perUser.retryAfter,
+      "You are asking too fast. Please wait a few minutes and try again."
+    );
+  }
+
+  const global = await rateLimit("chat:global", 300, 24 * 60 * 60);
+  if (!global.ok) {
+    return tooMany(
+      global.retryAfter,
+      "The assistant has reached its daily limit. Please try again tomorrow."
     );
   }
 

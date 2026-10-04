@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "../../../lib/prisma";
 import { createSession, SESSION_COOKIE } from "../../../lib/session";
+import { rateLimit } from "../../../lib/rateLimit";
 
 const schema = z.object({
   email: z.email(),
@@ -16,9 +17,23 @@ export async function POST(req: Request) {
   }
 
   const { email, password } = parsed.data;
+  const cleanEmail = email.toLowerCase();
+
+  const ip =
+    req.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown";
+  const key = `login:${ip}:${cleanEmail}`;
+
+  const limit = await rateLimit(key, 5, 15 * 60);
+  if (!limit.ok) {
+    const minutes = Math.ceil(limit.retryAfter / 60);
+    return NextResponse.json(
+      { error: `Too many attempts. Try again in ${minutes} minute(s).` },
+      { status: 429, headers: { "Retry-After": String(limit.retryAfter) } }
+    );
+  }
 
   const user = await prisma.user.findUnique({
-    where: { email: email.toLowerCase() },
+    where: { email: cleanEmail },
   });
   const passwordOk = user
     ? await bcrypt.compare(password, user.passwordHash)
@@ -37,6 +52,8 @@ export async function POST(req: Request) {
       { status: 403 }
     );
   }
+
+  await prisma.rateLimit.deleteMany({ where: { key } });
 
   const token = await createSession({ userId: user.id, role: user.role });
 

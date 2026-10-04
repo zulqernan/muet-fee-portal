@@ -102,3 +102,9 @@ model VerificationToken {
   expiresAt DateTime
   createdAt DateTime @default(now())
 }
+
+model RateLimit {
+  key     String   @id
+  count   Int
+  resetAt DateTime
+}
