@@ -3,7 +3,16 @@ import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
+// MUET semester fee (PDF): tuition 25000 + games 1500 + developmental 1300
+// + transport 18000 + exam 3000 = 48800
+const SEMESTER_FEE = 48800;
+
 async function main() {
+  const password = process.env.SEED_PASSWORD;
+  if (!password || password.length < 12) {
+    throw new Error("Set SEED_PASSWORD (at least 12 characters) in .env first.");
+  }
+
   const se = await prisma.department.upsert({
     where: { name: "Software Engineering" },
     update: {},
@@ -23,12 +32,12 @@ async function main() {
         session: "2026",
       },
     },
-    update: {},
+    update: { amount: SEMESTER_FEE },
     create: {
       departmentId: se.id,
       semester: 5,
       session: "2026",
-      amount: 45000,
+      amount: SEMESTER_FEE,
       dueDate: new Date("2026-11-15"),
       lateFeePerDay: 100,
     },
@@ -43,15 +52,15 @@ async function main() {
     await prisma.student.upsert({ where: { rollNo: s.rollNo }, update: {}, create: s });
   }
 
-  const hash = await bcrypt.hash("DevOnly12345", 10);
+  const hash = await bcrypt.hash(password, 10);
   await prisma.user.upsert({
     where: { email: "admin@example.com" },
-    update: {},
+    update: { passwordHash: hash },
     create: { email: "admin@example.com", passwordHash: hash, role: Role.ADMIN, emailVerifiedAt: new Date() },
   });
   await prisma.user.upsert({
     where: { email: "accounts@example.com" },
-    update: {},
+    update: { passwordHash: hash },
     create: { email: "accounts@example.com", passwordHash: hash, role: Role.ACCOUNTS, emailVerifiedAt: new Date() },
   });
 }
