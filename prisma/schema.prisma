@@ -1,0 +1,104 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  STUDENT
+  ACCOUNTS
+  ADMIN
+}
+
+enum ChallanStatus {
+  UNPAID
+  PAID
+}
+
+model Department {
+  id            Int            @id @default(autoincrement())
+  name          String         @unique
+  students      Student[]
+  feeStructures FeeStructure[]
+}
+
+model User {
+  id              Int       @id @default(autoincrement())
+  email           String    @unique
+  passwordHash    String
+  role            Role      @default(STUDENT)
+  emailVerifiedAt DateTime?
+  createdAt       DateTime  @default(now())
+  student         Student?
+  markedChallans  Challan[]
+  auditLogs       AuditLog[]
+  verificationTokens VerificationToken[]
+}
+
+model Student {
+  id               Int        @id @default(autoincrement())
+  rollNo           String     @unique
+  name             String
+  departmentId     Int
+  department       Department @relation(fields: [departmentId], references: [id])
+  batch            Int
+  semesterOverride Int?
+  officialEmail    String     @unique
+  userId           Int?       @unique
+  user             User?      @relation(fields: [userId], references: [id])
+  challans         Challan[]
+}
+
+model FeeStructure {
+  id            Int        @id @default(autoincrement())
+  departmentId  Int
+  department    Department @relation(fields: [departmentId], references: [id])
+  semester      Int
+  session       String
+  amount        Int
+  dueDate       DateTime
+  lateFeePerDay Int
+  challans      Challan[]
+
+  @@unique([departmentId, semester, session])
+}
+
+model Challan {
+  id             Int           @id @default(autoincrement())
+  challanNo      String        @unique
+  studentId      Int
+  student        Student       @relation(fields: [studentId], references: [id])
+  feeStructureId Int
+  feeStructure   FeeStructure  @relation(fields: [feeStructureId], references: [id])
+  amount         Int
+  status         ChallanStatus @default(UNPAID)
+  paidAt         DateTime?
+  markedById     Int?
+  markedBy       User?         @relation(fields: [markedById], references: [id])
+  createdAt      DateTime      @default(now())
+
+  @@unique([studentId, feeStructureId])
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int?
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String
+  entity    String
+  entityId  String
+  createdAt DateTime @default(now())
+}
+
+model VerificationToken {
+  id        Int      @id @default(autoincrement())
+  tokenHash String   @unique
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
