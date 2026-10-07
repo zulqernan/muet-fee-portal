@@ -4,6 +4,8 @@ import { z } from "zod";
 import { readSession, SESSION_COOKIE } from "../../../lib/session";
 import { rateLimit } from "../../../lib/rateLimit";
 
+export const maxDuration = 60;
+
 const schema = z.object({ question: z.string().trim().min(3).max(500) });
 
 function tooMany(retryAfter: number, message: string) {
@@ -50,9 +52,12 @@ export async function POST(req: Request) {
       `${process.env.RAG_URL ?? "http://localhost:8000"}/ask`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-rag-secret": process.env.RAG_SECRET ?? "",
+        },
         body: JSON.stringify({ question: parsed.data.question }),
-        signal: AbortSignal.timeout(30000),
+        signal: AbortSignal.timeout(55000),
       }
     );
     if (!res.ok) {
