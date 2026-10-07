@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { randomBytes, createHash } from "crypto";
 import { z } from "zod";
 import { prisma } from "../../../lib/prisma";
+import { sendMail } from "../../../lib/mailer";
 
 const schema = z.object({
   rollNo: z.string().trim().min(3),
@@ -68,14 +69,35 @@ export async function POST(req: Request) {
     );
   }
 
+  const baseUrl = process.env.APP_URL ?? "http://localhost:3000";
+  const link = `${baseUrl}/api/verify?token=${token}`;
+
   if (process.env.NODE_ENV !== "production") {
-    console.log(
-      `\n[DEV] Verification link: http://localhost:3000/api/verify?token=${token}\n`
+    console.log(`\n[DEV] Verification link: ${link}\n`);
+  }
+
+  try {
+    await sendMail(
+      email.toLowerCase(),
+      "Verify your MUET Fee Portal account",
+      `Hello ${student.name},\n\nPlease verify your email by opening this link (valid for 24 hours):\n\n${link}\n\nIf you did not register, ignore this email.`
+    );
+  } catch (e) {
+    console.error("Verification email failed:", e);
+    return NextResponse.json(
+      {
+        message:
+          "Account created, but we could not send the verification email. Please contact the accounts office.",
+      },
+      { status: 201 }
     );
   }
 
   return NextResponse.json(
-    { message: "Registered. Check your email to verify your account." },
+        {
+      message:
+        "Registered. Check your email (and the Spam folder) to verify your account.",
+    },
     { status: 201 }
   );
 }

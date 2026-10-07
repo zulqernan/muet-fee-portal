@@ -3,10 +3,13 @@ import { createHash } from "crypto";
 import { prisma } from "../../../lib/prisma";
 
 export async function GET(req: Request) {
-  const token = new URL(req.url).searchParams.get("token");
-  if (!token) {
-    return NextResponse.json({ error: "Missing token." }, { status: 400 });
-  }
+  const url = new URL(req.url);
+  const base = process.env.APP_URL ?? url.origin;
+  const go = (status: "ok" | "invalid") =>
+    NextResponse.redirect(new URL(`/verified?status=${status}`, base));
+
+  const token = url.searchParams.get("token");
+  if (!token) return go("invalid");
 
   const tokenHash = createHash("sha256").update(token).digest("hex");
 
@@ -14,12 +17,7 @@ export async function GET(req: Request) {
     where: { tokenHash },
   });
 
-  if (!record || record.expiresAt < new Date()) {
-    return NextResponse.json(
-      { error: "This link is invalid or has expired." },
-      { status: 400 }
-    );
-  }
+  if (!record || record.expiresAt < new Date()) return go("invalid");
 
   await prisma.$transaction([
     prisma.user.update({
@@ -29,5 +27,5 @@ export async function GET(req: Request) {
     prisma.verificationToken.delete({ where: { id: record.id } }),
   ]);
 
-  return NextResponse.json({ message: "Email verified. You can now log in." });
+  return go("ok");
 }
