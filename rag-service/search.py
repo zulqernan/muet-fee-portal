@@ -2,6 +2,7 @@ import json
 import os
 import sys
 import time
+from pathlib import Path
 
 import numpy as np
 from dotenv import load_dotenv
@@ -10,6 +11,7 @@ from google.genai import types
 
 load_dotenv()
 
+BASE_DIR = Path(__file__).resolve().parent
 EMBED_MODEL = "gemini-embedding-001"
 
 client = genai.Client(
@@ -17,7 +19,7 @@ client = genai.Client(
     http_options=types.HttpOptions(timeout=15000),  # 15 seconds
 )
 
-with open("index.json", encoding="utf-8") as f:
+with open(BASE_DIR / "index.json", encoding="utf-8") as f:
     index = json.load(f)
 
 matrix = np.array([item["embedding"] for item in index])
