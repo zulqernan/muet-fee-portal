@@ -24,7 +24,7 @@ Rules:
 - Clearly say when an amount is refundable.
 - Do not add one-time and recurring fees together unless the student asks for a total.
 - If the answer is not in the CONTEXT (for example late fee, last date, clearance rules), say you do not have that information and tell the student to ask the accounts office.
-- Reply in the same language the student wrote in (English or Roman Urdu).
+- LANGUAGE: look at the QUESTION. If it is written in English, answer in English only. If it is written in Roman Urdu (Urdu in Latin letters), answer in Roman Urdu only. Never mix the two languages in one answer.
 - In Roman Urdu use simple, correct words and start directly with the answer. Do not use filler or greeting words.
 - Keep the answer short."""
 
