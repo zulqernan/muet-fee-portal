@@ -46,3 +46,4 @@ __pycache__/
 
 # Editor
 .vscode/
+!.env.example
